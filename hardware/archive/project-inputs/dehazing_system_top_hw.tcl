@@ -1,11 +1,11 @@
 
-#
+# 
 package require -exact qsys 16.1
 
 
-#
+# 
 # module dehazing_system
-#
+# 
 set_module_property DESCRIPTION ""
 set_module_property NAME dehazing_system
 set_module_property VERSION 1.0
@@ -21,9 +21,9 @@ set_module_property ALLOW_GREYBOX_GENERATION false
 set_module_property REPORT_HIERARCHY false
 
 
-#
+# 
 # file sets
-#
+# 
 add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
 set_fileset_property QUARTUS_SYNTH TOP_LEVEL dehazing_system_top
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
@@ -31,19 +31,19 @@ set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE true
 add_fileset_file dehazing_system_top.v VERILOG PATH dehazing_system_top.v TOP_LEVEL_FILE
 
 
-#
+# 
 # parameters
-#
+# 
 
 
-#
+# 
 # display items
-#
+# 
 
 
-#
+# 
 # connection point clock
-#
+# 
 add_interface clock clock end
 set_interface_property clock clockRate 0
 set_interface_property clock ENABLED true
@@ -55,9 +55,9 @@ set_interface_property clock SVD_ADDRESS_GROUP ""
 add_interface_port clock clk clk Input 1
 
 
-#
+# 
 # connection point reset_sink
-#
+# 
 add_interface reset_sink reset end
 set_interface_property reset_sink associatedClock clock
 set_interface_property reset_sink synchronousEdges DEASSERT
@@ -70,9 +70,9 @@ set_interface_property reset_sink SVD_ADDRESS_GROUP ""
 add_interface_port reset_sink rst_n reset_n Input 1
 
 
-#
+# 
 # connection point snk
-#
+# 
 add_interface snk avalon_streaming end
 set_interface_property snk associatedClock clock
 set_interface_property snk associatedReset reset_sink
@@ -95,9 +95,9 @@ add_interface_port snk snk_sop startofpacket Input 1
 add_interface_port snk snk_eop endofpacket Input 1
 
 
-#
+# 
 # connection point src
-#
+# 
 add_interface src avalon_streaming start
 set_interface_property src associatedClock clock
 set_interface_property src associatedReset reset_sink
@@ -120,9 +120,9 @@ add_interface_port src src_sop startofpacket Output 1
 add_interface_port src src_eop endofpacket Output 1
 
 
-#
+# 
 # connection point bypass_switch
-#
+# 
 add_interface bypass_switch conduit end
 set_interface_property bypass_switch associatedClock clock
 set_interface_property bypass_switch associatedReset reset_sink
@@ -133,3 +133,4 @@ set_interface_property bypass_switch CMSIS_SVD_VARIABLES ""
 set_interface_property bypass_switch SVD_ADDRESS_GROUP ""
 
 add_interface_port bypass_switch sw_bypass sw_bypass Input 1
+

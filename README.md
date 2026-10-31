@@ -4,17 +4,17 @@
 
 [![Source and tooling checks](https://github.com/DyDuy/fpga-vision-enhancement/actions/workflows/source-checks.yml/badge.svg)](https://github.com/DyDuy/fpga-vision-enhancement/actions/workflows/source-checks.yml)
 
-[Visual results](#visual-results) · [Architecture](#architecture) · [Reported results](#reported-results) · [Quick start](#quick-start) · [Documentation](#documentation) · [Next steps](#next-steps)
+[Visual results](#visual-results) · [Architecture](#architecture) · [Reported results](#reported-results) · [Quick start](#quick-start) · [Board update workflow](#board-update-and-run-workflow) · [Documentation](#documentation) · [Next steps](#next-steps)
 
 ## Overview
 
-This project explores FPGA acceleration of visibility enhancement for hazy images on the **Terasic DE1-SoC**. It combines a lookup-table-based pixel-processing core with an HPS Linux application that loads a still image into SDRAM for processing and VGA display. The maintained hardware is a **1×1, per-pixel implementation**, rather than a spatial 15×15 dark-channel filter. [Implementation: active hardware scope][hardware-scope]; [HPS image-loading and display path, lines 19–72][hps-viewer].
+This project explores FPGA acceleration of visibility enhancement for hazy images on the **Terasic DE1-SoC**. It combines a lookup-table-based pixel-processing core with an HPS Linux application that loads a still image into SDRAM for processing and VGA display. The preserved hardware snapshot is a **1×1, per-pixel implementation**, rather than a spatial 15×15 dark-channel filter. The expected active FPGA source set is currently incomplete under `hardware/de1_soc/`; the snapshot is preserved under `hardware/archive/project-inputs/`. [Implementation scope and source boundary][hardware-scope]; [HPS image-loading and display path, lines 19–72][hps-viewer].
 
 The associated manuscript, *A Real-Time FPGA-Based Vision Enhancement System*, describes the algorithm, RTL co-simulation and a still-image board demonstration. The author's thesis, defense slides and research journal provide additional historical image results, a board demonstration recording and implementation records. This README distinguishes **reported experiments** from verification of the current source tree. Continuous camera-to-display operation remains an integration step. [Manuscript: abstract][paper-abstract]; [supplemental source inventory and evidence boundaries](paper/thesis/supplemental-evidence.md#source-inventory); [current verification record, lines 35–39][build-status].
 
-| At a glance | Current implementation |
+| At a glance | Current documented snapshot |
 |---|---|
-| Platform and design entry | DE1-SoC; `hardware/de1_soc/DE1_SoC_Computer.qpf` |
+| Platform and design entry | DE1-SoC; `hardware/archive/project-inputs/DE1_SoC_Computer.qpf` |
 | Processing core | RGB channel extrema → transmission lookup → clamp → restoration → gamma |
 | Application path | HPS loads a 640×480 RGB24 HEX image; Pixel DMA feeds the FPGA/VGA path |
 | Development flow | Python tooling, Quartus Prime Lite 18.1 / Platform Designer, ARM Linux cross-build |
@@ -51,7 +51,7 @@ The display subsystem includes DMA, an RGB resampler, a dual-clock FIFO and a VG
 
 <img src="docs/assets/readme-pipeline.svg" alt="Current 1×1 RTL: channel extrema, registered features, transmission lookup, scaling and floor, reciprocal restoration and gamma; aligned RGB feeds atmospheric estimation and restoration" width="600">
 
-The diagram follows the **current RTL**, including the registered `dark_channel_1x1` stage and parallel atmospheric-light estimator. [Stage wiring, lines 71–127][rtl-pipeline]; [feature/transmission stages, lines 247–362][rtl-features]; [restoration/atmospheric estimation, lines 368–486][rtl-restoration].
+The diagram follows the **preserved snapshot RTL**, including the registered `dark_channel_1x1` stage and parallel atmospheric-light estimator. [Stage wiring, lines 71–127][rtl-pipeline]; [feature/transmission stages, lines 247–362][rtl-features]; [restoration/atmospheric estimation, lines 368–486][rtl-restoration].
 
 - **Windowless features:** per-pixel channel extrema address a 65,536-entry × 10-bit transmission ROM. The manuscript motivates this mapping through the 1×1 identity $C_{\min}=V(1-S)$, avoiding a spatial neighborhood in the estimator. [RTL, lines 247–303][rtl-features]; [manuscript §2, lines 31–39][paper-algorithm].
 - **Controlled restoration:** the current instance uses `STRENGTH=256` and `T_FLOOR=102`; reciprocal lookup, signed multiplication and clipping implement restoration. Gamma correction uses separate channel lookups. [RTL parameters/clamp][rtl-features]; [restoration, lines 368–458][rtl-restoration]; [gamma, lines 145–189][rtl-gamma].
@@ -124,7 +124,6 @@ Use **Quartus Prime Lite 18.1**, with the device and IP support required by the 
 $env:QUARTUS_ROOTDIR = 'C:\intelFPGA_lite\18.1\quartus'
 python software/python/build_fpga.py compile
 ```
-
 `compile` stages fresh inputs, generates the VGA, Video-In and parent Qsys systems, then invokes compilation. A separate `generate` invocation is unnecessary. Each run has input hashes, logs and status under `build/quartus/vision_1x1/runs/`; `latest.json` identifies the last started run, which may be incomplete. [Build workflow, lines 7–22][build-workflow].
 
 For GUI work, open `hardware/de1_soc/DE1_SoC_Computer.qpf`. Edit canonical RTL/Qsys/pin sources rather than generated run copies. See the [FPGA build guide](docs/development/automatic-build.md) for IP search paths, regeneration and timing constraints to review.
@@ -150,6 +149,62 @@ sudo ./vga_simple_display input_image.hex
 
 The utility accesses `/dev/mem`, depends on the matching [address map](software/hps/include/hps_fpga_addresses.h) and remains running after display setup. Review its legacy input/error handling before use beyond a controlled demonstration. FPGA programming, Linux-image preparation and automatic deployment are not performed by the build script. [HPS operating requirements, lines 3–16][hps-requirements]; [application behavior, lines 19–83][hps-viewer]; [deployment limits](docs/development/vscode-hps-build.md#d--điều-kiện-vận-hành-và-giới-hạn).
 
+## Board update and run workflow
+
+For an **already provisioned board**, the [deployment workflow — tiếng Việt](deploy/README.md) provides the complete commands for scoped C/header pushes, source-version checks, native compilation, Windows-to-board bitstream transfer and execution. Initial machine setup and private operational notes are kept outside the repository.
+
+```text
+Push C/.h to the configured Git branch
+                 ↓
+Board checks/downloads software/hps/include/ and software/hps/src/
+                 ↓
+Compare source commit → compile-only check
+                 ↓
+Windows SCP → verify SHA-256 → replace output_file.rbf
+                 ↓
+run.sh → snapshot + compile C → configure FPGA → run HPS application
+```
+
+Only the two HPS source trees are downloaded; the updater does not clone the entire project, build applications or program FPGA automatically. New files and nested libraries are discovered automatically. The bitstream is transferred separately, and the default image is stored beside it:
+
+```text
+/home/root/fpga-vision-enhacement/
+├── output_file.rbf
+├── input_image.hex
+├── include/                  Downloaded headers/libraries
+├── src/                      Downloaded application/library sources
+├── .git-sync/                Updater, source commit, checksums and log
+├── run.sh                    Compile, configure FPGA and run
+├── run.conf                  Application entry point and linked C sources
+└── build/                    Frozen inputs, executable and per-run logs
+```
+
+The board directory deliberately retains the configured spelling `fpga-vision-enhacement`; the repository is named `fpga-vision-enhancement`. After SSH login, use these commands **on HPS Linux**, with the helpers already installed:
+
+```sh
+cd /home/root/fpga-vision-enhacement
+sh .git-sync/sync.sh          # Check/download the configured branch
+cat .git-sync/last-commit     # Compare with the pushed/merged branch commit
+sh run.sh --build-only       # Compile/link only; do not configure FPGA or run
+```
+
+Transfer a new bitstream from **Windows PowerShell**, using the actual board IP and local file path:
+
+```powershell
+$Board = "root@<IP_FPGA>"
+Get-FileHash -LiteralPath "C:\FPGA\output_file.rbf" -Algorithm SHA256
+scp "C:\FPGA\output_file.rbf" "${Board}:/home/root/fpga-vision-enhacement/output_file.rbf.new"
+```
+
+Verify the uploaded file's SHA-256 on the board before replacing `output_file.rbf`; the [full workflow](deploy/README.md#6-bước-4--chuyển-rbf-từ-windows-và-thay-file-cũ) includes the exact verification and replacement commands. Then run:
+
+```sh
+sh run.sh                    # Compile again, load output_file.rbf, start the app
+# Alternative: sh run.sh --sync  # Refresh source immediately before building
+```
+
+**Operational boundaries:** the source commit records files on SD, not the version already executing or the currently configured FPGA. Stop the previous application before launching another; active hardware DMA requires a verified quiesce procedure. C/header and `.rbf` must share the same memory-map contract. Compilation is intentionally completed before FPGA loading so a C build error leaves the FPGA unchanged. This workflow does not modify the boot configuration, and host-side checks do not establish successful physical-board reconfiguration or runtime validation.
+
 ## Documentation
 
 ```text
@@ -163,16 +218,19 @@ software/
   matlab/        Algorithm/reference work
 paper/article/   Manuscript text and tracked figures
 paper/thesis/    Thesis archive index and supplemental evidence notes
+deploy/          HPS source updater, board launcher and public usage workflow
 docs/            Architecture, workflow, verification and project history
 build/           Generated local outputs; excluded from Git
 ```
 
 | Read next | Purpose |
 |---|---|
+| [Board update/run workflow — tiếng Việt](deploy/README.md) | Push C/header, check source version, compile, transfer `.rbf` and run |
 | [Active hardware](hardware/README.md) / [Quartus project](hardware/de1_soc/README.md) | Canonical source ownership and project entry points |
 | [FPGA workflow](docs/development/automatic-build.md) / [build layout](docs/development/build-layout.md) | Fresh builds, logs and artifact handling |
 | [HPS utility](software/hps/README.md) / [WSL and VS Code guide](docs/development/vscode-hps-build.md) | Cross-compilation, ABI and board prerequisites |
 | [Python tools](software/python/README.md) / [verification](docs/development/verification.md) | Executable checks and remaining validation gates |
+| [Git/GitHub handbook — tiếng Việt](docs/development/git-workflow.md) | PowerShell setup, scoped commits, branches, PRs, recovery and local-clone cleanup |
 | [Full manuscript](paper/article/53_20260916_A_real_time_FPGA_based_vision_enhancement_system_Final_Submission.md) | Algorithm, figures, experiments and bibliography |
 | [Thesis, defense and journal evidence](paper/thesis/supplemental-evidence.md) | Source checksums, exact pages/slides, reviewed figures and historical build context |
 | [Documentation index](docs/README.md) / [contributing](CONTRIBUTING.md) | Design notes, history and contribution workflow |
@@ -200,14 +258,14 @@ Algorithm references are listed in the [manuscript bibliography](paper/article/5
 Retain original notices and terms for third-party IP, examples and reference material. This README assigns no new license to source, manuscript or figures; see the [publication/provenance notes](paper/article/source-provenance.md#quyền-phân-phối) before redistributing publication assets.
 
 <!-- Evidence links are pinned to the source snapshot reviewed for this README. -->
-[hardware-scope]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/hardware/README.md#L1-L13
-[hardware-project]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/hardware/de1_soc/README.md#L1-L19
-[rtl-pipeline]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/hardware/de1_soc/dehazing_system_top.v#L71-L127
-[rtl-features]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/hardware/de1_soc/dehazing_system_top.v#L247-L362
-[rtl-restoration]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/hardware/de1_soc/dehazing_system_top.v#L368-L486
-[rtl-gamma]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/hardware/de1_soc/dehazing_system_top.v#L145-L189
-[rtl-control]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/hardware/de1_soc/dehazing_system_top.v#L3-L139
-[board-switch]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/hardware/de1_soc/DE1_SoC_Computer.v#L414-L418
+[hardware-scope]: hardware/README.md#L1-L13
+[hardware-project]: hardware/archive/project-inputs/DE1_SoC_Computer.qpf
+[rtl-pipeline]: hardware/archive/project-inputs/dehazing_system_top.v#L71-L127
+[rtl-features]: hardware/archive/project-inputs/dehazing_system_top.v#L247-L362
+[rtl-restoration]: hardware/archive/project-inputs/dehazing_system_top.v#L368-L486
+[rtl-gamma]: hardware/archive/project-inputs/dehazing_system_top.v#L145-L189
+[rtl-control]: hardware/archive/project-inputs/dehazing_system_top.v#L3-L139
+[board-switch]: hardware/archive/project-inputs/DE1_SoC_Computer.v#L414-L418
 [qsys-stream]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/hardware/qsys/Computer_System.qsys#L1230-L1255
 [vga-system]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/hardware/qsys/VGA_Subsystem.qsys#L137-L225
 [hps-viewer]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/software/hps/src/vga_simple_display.c#L19-L83
@@ -224,3 +282,12 @@ Retain original notices and terms for third-party IP, examples and reference mat
 [paper-figures]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/paper/article/53_20260916_A_real_time_FPGA_based_vision_enhancement_system_Final_Submission.md#L84-L88
 [paper-verification]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/paper/article/53_20260916_A_real_time_FPGA_based_vision_enhancement_system_Final_Submission.md#L66-L84
 [paper-resources]: https://github.com/DyDuy/fpga-vision-enhancement/blob/5e287f1821ffd83656033a32633448babdc4a698/paper/article/53_20260916_A_real_time_FPGA_based_vision_enhancement_system_Final_Submission.md#L103-L121
+
+
+## Integrated camera snapshot sources (2026-10-21)
+
+Snapshot-first improvements now use canonical hardware/ and software/hps/ paths. Start with the [Vietnamese build/test guide](docs/development/snapshot-build-test.md), [integration record](docs/development/snapshot-v1/integration_summary.md) and [verification evidence](docs/development/snapshot-v1/implementation_report.md). Original user-modified inputs were backed up before replacement. The old top QIP is quarantined: regenerate VGA, Video-In and Computer_System before compilation. No new bitstream, timing closure or camera/FPS result is established.
+
+Use the [fillable main-project test report](docs/development/main-project-test-report.md) to record the exact source/build/bitstream, timing evidence, camera tests and five externally timed HPS publication runs; unmeasured fields remain NOT_RUN/TODO.
+
+To run locally in VS Code first, use [PC image preview with F5](docs/development/vscode-pc-preview.md). It reads RGB24 HEX and writes BMP without accessing the DE1-SoC; FPGA enhancement and board validation remain separate.

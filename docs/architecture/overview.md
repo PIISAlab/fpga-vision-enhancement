@@ -1,4 +1,4 @@
-# Kiến trúc dự kiến
+# Target architecture
 
 ```mermaid
 flowchart LR
@@ -10,15 +10,16 @@ flowchart LR
     CTRL[HPS control and parameters] --> PRE
     CTRL --> EST
     CTRL --> RESTORE
-    OUT --> SINK[DDR, VGA or HDMI]
+    OUT --> SINK[DDR, VGA, or HDMI]
 ```
 
-Đây là kiến trúc mục tiêu, chưa phải implementation hiện có. Lõi thuật toán trình bày interface streaming nhỏ; các chi tiết board, bus và DDR được giữ trong adapter bên ngoài seam này.
+This is the target architecture, not a claim about the current implementation. The algorithm core exposes a small streaming interface; board, bus, and DDR details remain in adapters around that boundary.
 
-## Phân chia trách nhiệm
+## Responsibility boundaries
 
-- `model/`: thuật toán tham chiếu và khám phá số học.
-- `hardware/archive/sources/rtl/chisel/`: proof-of-concept Chisel hiện có.
-- Chỉ tạo vị trí SystemVerilog khi có implementation thực; scaffold rỗng đã được dọn.
-- `hardware/archive/sources/verification/`: checker qua interface của lõi.
-- `hardware/archive/sources/boards/de1_soc/`: clock, pin, Platform Designer và top-level board.
+- `software/matlab/`: algorithm prototype and numerical exploration; it is not a validated fixed-point golden model.
+- `hardware/archive/project-inputs/`: preserved candidate RTL, board wrapper, QPF/QSF/SDC, IP Tcl, and LUT inputs; this is historical intake, not active source.
+- `hardware/verification/intake-20261004/`: imported RTL, testbench, fixtures, and simulator-state evidence.
+- `hardware/qsys/` and `hardware/pin/`: current Platform Designer input files and board constraints; their dependency closure still requires review.
+
+The repository is intended to contain a DE1-SoC implementation under `hardware/de1_soc/`, but the current checkout lacks the expected active manifest and source set there. Treat `hardware/archive/project-inputs/` RTL and generated Quartus output as historical or generated evidence until a reviewed active manifest explicitly selects a restored source set.

@@ -45,7 +45,7 @@ module DE1_SoC_Computer (
 	// 40-Pin Headers
 	GPIO_0,
 	GPIO_1,
-
+	
 	// Seven Segment Displays
 	// IR
 	IRDA_RXD,
@@ -60,7 +60,7 @@ module DE1_SoC_Computer (
 	// PS2 Ports
 	PS2_CLK,
 	PS2_DAT,
-
+	
 	PS2_CLK2,
 	PS2_DAT2,
 
@@ -87,7 +87,7 @@ module DE1_SoC_Computer (
 	////////////////////////////////////
 	// HPS Pins
 	////////////////////////////////////
-
+	
 	// DDR3 SDRAM
 	HPS_DDR3_ADDR,
 	HPS_DDR3_BA,
@@ -124,10 +124,10 @@ module DE1_SoC_Computer (
 
 	// Accelerometer
 	HPS_GSENSOR_INT,
-
+		
 	// General Purpose I/O
 	HPS_GPIO,
-
+		
 	// I2C
 	HPS_I2C_CONTROL,
 	HPS_I2C1_SCLK,
@@ -140,7 +140,7 @@ module DE1_SoC_Computer (
 
 	// LED
 	HPS_LED,
-
+		
 	// SD Card
 	HPS_SD_CLK,
 	HPS_SD_CMD,
@@ -260,7 +260,7 @@ output					VGA_VS;
 ////////////////////////////////////
 // HPS Pins
 ////////////////////////////////////
-
+	
 // DDR3 SDRAM
 output		[14: 0]	HPS_DDR3_ADDR;
 output		[ 2: 0]  HPS_DDR3_BA;
@@ -344,7 +344,7 @@ output					HPS_USB_STP;
 wire			[15: 0]	hex3_hex0;
 //wire			[15: 0]	hex5_hex4;
 
-//assign HEX0 = ~hex3_hex0[ 6: 0]; // hex3_hex0[ 6: 0];
+//assign HEX0 = ~hex3_hex0[ 6: 0]; // hex3_hex0[ 6: 0]; 
 //assign HEX1 = ~hex3_hex0[14: 8];
 //assign HEX2 = ~hex3_hex0[22:16];
 //assign HEX3 = ~hex3_hex0[30:24];
@@ -401,11 +401,11 @@ Computer_System The_System (
 
 	// LEDs
 	//.leds_export								(LEDR),
-
+	
 	// Seven Segs
 	//.hex3_hex0_export							(hex3_hex0),
 	//.hex5_hex4_export							(hex5_hex4),
-
+	
 	// PS2 Ports
 	//.ps2_port_CLK								(PS2_CLK),
 	//.ps2_port_DAT								(PS2_DAT),
@@ -427,7 +427,7 @@ Computer_System The_System (
 	.vga_R										(VGA_R),
 	.vga_G										(VGA_G),
 	.vga_B										(VGA_B),
-
+	
 	// Video In Subsystem
 	.video_in_TD_CLK27 						(TD_CLK27),
 	.video_in_TD_DATA							(TD_DATA),
@@ -436,7 +436,7 @@ Computer_System The_System (
 	.video_in_clk27_reset					(),
 	.video_in_TD_RESET						(),
 	.video_in_overflow_flag					(),
-
+	
 	// SDRAM
 	.sdram_clk_clk								(DRAM_CLK),
    .sdram_addr									(DRAM_ADDR),
@@ -470,7 +470,7 @@ Computer_System The_System (
 	.memory_mem_odt		(HPS_DDR3_ODT),
 	.memory_mem_dm			(HPS_DDR3_DM),
 	.memory_oct_rzqin		(HPS_DDR3_RZQ),
-
+		  
 	// Ethernet
 	.hps_io_hps_io_gpio_inst_GPIO35	(HPS_ENET_INT_N),
 	.hps_io_hps_io_emac1_inst_TX_CLK	(HPS_ENET_GTX_CLK),
